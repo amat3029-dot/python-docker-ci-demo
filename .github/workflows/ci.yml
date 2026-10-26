@@ -34,6 +34,7 @@ jobs:
       - name: Build Docker image
         run: docker build --pull -t python-docker-ci-demo:${{ github.sha }} .
       
+ 
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -45,9 +46,7 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM,LOW
           exit-code: "0"
 
-
-      
-      - name: Display vulnerability counts
+      - name: Display vulnerability details and counts
         if: always()
         run: |
-          python -c "import json, os, collections; p='trivy-results.json'; d=json.load(open(p)) if os.path.exists(p) else {}; v=[x for r in d.get('Results',[]) for x in (r.get('Vulnerabilities') or [])]; c=collections.Counter(x.get('Severity','UNKNOWN') for x in v); print('CRITICAL vulnerabilities:', c['CRITICAL']); print('HIGH vulnerabilities:', c['HIGH']); print('MEDIUM vulnerabilities:', c['MEDIUM']); print('LOW vulnerabilities:', c['LOW']); print('TOTAL vulnerabilities:', sum(c.values()))"
+          python -c "import json, os, collections; p='trivy-results.json'; d=json.load(open(p)) if os.path.exists(p) else {}; v=[(r.get('Target',''),x) for r in d.get('Results',[]) for x in (r.get('Vulnerabilities') or [])]; c=collections.Counter(x.get('Severity','UNKNOWN') for _,x in v); print('CRITICAL:',c['CRITICAL'],'HIGH:',c['HIGH'],'MEDIUM:',c['MEDIUM'],'LOW:',c['LOW'],'TOTAL:',len(v)); [print(f'{x.get(\"Severity\")} | {x.get(\"VulnerabilityID\")} | {x.get(\"PkgName\")} | Installed: {x.get(\"InstalledVersion\")} | Fixed: {x.get(\"FixedVersion\") or \"No fix listed\"} | {x.get(\"Title\", \"\")}') for _,x in v]"
