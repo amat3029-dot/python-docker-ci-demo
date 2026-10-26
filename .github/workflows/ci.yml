@@ -42,12 +42,12 @@ jobs:
           scan-ref: python-docker-ci-demo:${{ github.sha }}
           format: json
           output: trivy-results.json
-          severity: HIGH,CRITICAL
+          severity: CRITICAL,HIGH,MEDIUM,LOW
           exit-code: "0"
 
 
+      
       - name: Display vulnerability counts
         if: always()
         run: |
-          python -c "import json, os; p='trivy-results.json'; d=json.load(open(p)) if os.path.exists(p) else {}; v=[x for r in d.get('Results',[]) for x in (r.get('Vulnerabilities') or [])]; print('HIGH vulnerabilities:', sum(x.get('Severity')=='HIGH' for x in v)); print('CRITICAL vulnerabilities:', sum(x.get('Severity')=='CRITICAL' for x in v))"
-
+          python -c "import json, os, collections; p='trivy-results.json'; d=json.load(open(p)) if os.path.exists(p) else {}; v=[x for r in d.get('Results',[]) for x in (r.get('Vulnerabilities') or [])]; c=collections.Counter(x.get('Severity','UNKNOWN') for x in v); print('CRITICAL vulnerabilities:', c['CRITICAL']); print('HIGH vulnerabilities:', c['HIGH']); print('MEDIUM vulnerabilities:', c['MEDIUM']); print('LOW vulnerabilities:', c['LOW']); print('TOTAL vulnerabilities:', sum(c.values()))"
