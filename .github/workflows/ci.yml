@@ -68,11 +68,7 @@ jobs:
                       "ID": vuln.get("VulnerabilityID", ""),
                       "Package": vuln.get("PkgName", ""),
                       "Installed": vuln.get("InstalledVersion", ""),
-                     "Fixed": (
-    vuln.get("FixedVersion") or "No fix available"
-    if vuln.get("Severity") in ("CRITICAL", "HIGH")
-    else ""
-),
+                     "Fixed": (vuln.get("FixedVersion") or "No fix available") if vuln.get("Severity") in ("CRITICAL", "HIGH") else "",
                       "Title": vuln.get("Title", ""),
                   })
 
