@@ -20,16 +20,24 @@ RUN rm -rf /usr/local/lib/python3.13/site-packages/pip* \
            /usr/local/lib/python3.13/test \
            /usr/local/bin/pip*
 
-# Collect the shared libraries Python needs (zlib, ssl, ffi, expat, sqlite...),
-# skipping libc/gcc (already in the base) and the vulnerable
-# ncurses / util-linux / readline libs.
+# Collect the shared libraries Python needs (zlib, ssl, ffi, expat, sqlite...).
+# - skip libc/gcc (already in the distroless base) and the vulnerable
+#   ncurses / util-linux / readline libs
+# - skip /usr/local (copied separately below)
+# - rewrite /lib/... to /usr/lib/... because /lib is a symlink in the runtime image
 RUN set -eux; \
     mkdir -p /rootfs; \
     { echo /usr/local/bin/python3.13; find /usr/local/lib -name '*.so*' -type f; } \
       | xargs ldd 2>/dev/null \
       | awk '/=> \//{print $3}' | sort -u \
+      | grep -Ev '^/usr/local/' \
       | grep -Ev '/(libc|libm|libdl|libpthread|librt|libutil|libresolv|libgcc_s|libstdc\+\+|ld-linux[^/]*|libtinfo|libncursesw?|libpanelw?|libformw?|libmenuw?|libuuid|libreadline|libedit)\.so' \
-      | xargs -I{} cp --parents -L {} /rootfs/
+      | sed 's#^/lib/#/usr/lib/#' \
+      | sort -u \
+      | xargs -I{} cp --parents -L {} /rootfs/; \
+    # safety check: nothing may sit at /rootfs/lib or /rootfs/lib64
+    test ! -e /rootfs/lib && test ! -e /rootfs/lib64; \
+    find /rootfs -type f
 
 # ---------- Runtime stage ----------
 FROM gcr.io/distroless/cc-debian13:nonroot
